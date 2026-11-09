@@ -32,9 +32,11 @@ function route(req: NextRequest, path: string, session: Awaited<ReturnType<typeo
   const next = () => NextResponse.next({ request: { headers: req.headers } })
   if (path.startsWith("/api/")) return next()
 
-  if (path === "/" || path === "/login") {
+  // "/" is the public landing page, for everyone. /login sends anyone already logged in to their home.
+  if (path === "/") return next()
+  if (path === "/login") {
     if (session) return NextResponse.redirect(new URL(ROLE_HOME[session.role], req.nextUrl))
-    return path === "/" ? NextResponse.redirect(new URL("/login", req.nextUrl)) : next()
+    return next()
   }
 
   if (isAppRoute(path)) {
