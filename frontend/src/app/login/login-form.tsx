@@ -1,26 +1,21 @@
 "use client"
 
 import { useActionState, useRef, useState } from "react"
-import Link from "next/link"
 import { Eye, EyeOff, Loader2, LockKeyhole, TriangleAlert } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { login, type LoginState } from "@/lib/auth/actions"
+import type { DemoAccount } from "./demo-accounts"
 
-const DEMO_ACCOUNTS = [
-  { role: "Super admin", email: "super@friday.app", password: "super123", note: "Runs the platform: all businesses" },
-  { role: "Owner", email: "owner@friday.app", password: "owner123", note: "Friday Demo Store: full access" },
-  { role: "Manager", email: "manager@friday.app", password: "manager123", note: "Downtown & Uptown outlets" },
-  { role: "Staff", email: "staff@friday.app", password: "staff123", note: "Main Warehouse: sells, adds stock, rents out" },
-  { role: "Staff (sell only)", email: "seller@friday.app", password: "staff123", note: "Main Warehouse: sells, can't add products" },
-  { role: "Staff (products only)", email: "stocker@friday.app", password: "staff123", note: "Main Warehouse: adds products, can't sell" },
-  { role: "Owner (on trial)", email: "cafe@friday.app", password: "cafe1234", note: "Green Leaf Café: trial ends in 2 days" },
-  { role: "Owner (unpaid)", email: "urban@friday.app", password: "urban123", note: "Urban Party Rentals: locked, must pay" },
-]
 
-export function LoginForm({ showDemoAccounts }: { showDemoAccounts: boolean }) {
+/**
+ * `demoAccounts` is passed in by the server component, which sends an empty list in
+ * production. Keeping the list out of this file keeps the logins out of the JavaScript
+ * the browser downloads, instead of only hiding them.
+ */
+export function LoginForm({ demoAccounts }: { demoAccounts: DemoAccount[] }) {
   const [state, action, pending] = useActionState<LoginState, FormData>(login, {})
   const [showPassword, setShowPassword] = useState(false)
   const emailRef = useRef<HTMLInputElement>(null)
@@ -89,20 +84,13 @@ export function LoginForm({ showDemoAccounts }: { showDemoAccounts: boolean }) {
         <p className="text-center text-xs text-muted-foreground">
           No account? Ask your business owner to create one for you.
         </p>
-        <p className="text-center text-xs text-muted-foreground">
-          By logging in you agree to the{" "}
-          <Link href="/privacy" className="underline underline-offset-2 hover:text-foreground">
-            Privacy Policy
-          </Link>
-          .
-        </p>
       </form>
 
-      {showDemoAccounts && (
+      {demoAccounts.length > 0 && (
         <div className="space-y-2 rounded-xl border bg-muted/40 p-3">
           <p className="text-xs font-medium text-muted-foreground">Demo accounts (click to fill)</p>
           <div className="grid gap-1.5">
-            {DEMO_ACCOUNTS.map((a) => (
+            {demoAccounts.map((a) => (
               <button
                 key={a.email}
                 type="button"

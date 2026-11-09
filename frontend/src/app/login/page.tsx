@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Boxes, CalendarClock, ScanBarcode, Store, Truck } from "lucide-react"
 import { LoginForm } from "./login-form"
+import { demoAccounts } from "./demo-accounts"
 
 export const metadata: Metadata = { title: "Log in" }
 
@@ -23,7 +24,7 @@ export default function LoginPage() {
         </div>
         <div className="flex flex-1 items-center justify-center py-10">
           <div className="w-full max-w-sm">
-            <LoginForm showDemoAccounts={process.env.NODE_ENV !== "production"} />
+            <LoginForm demoAccounts={demoAccounts()} />
             <ForgotHelp />
           </div>
         </div>
