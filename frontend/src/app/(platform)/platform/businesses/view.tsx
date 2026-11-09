@@ -9,19 +9,14 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { EmptyState, Field, PageBody, PageHeader, Pill, SimpleSelect, useRequired, TimeAgo } from "@/components/common"
 import { BusinessStatusPill, STATUS } from "@/components/platform"
 import { createBusiness } from "@/lib/auth/platform-actions"
 import { formatDate } from "@/lib/format"
-import { accessEndsAt, priceLabel } from "@/lib/business"
 import type { BusinessStatus, BusinessSummary } from "@/lib/types"
 
-/** What new businesses get, from Payment options. */
-type Plan = { monthlyPrice: number; trialDays: number }
-
-export function BusinessesView({ businesses, openNew, plan }: { businesses: BusinessSummary[]; openNew: boolean; plan: Plan }) {
+export function BusinessesView({ businesses, openNew }: { businesses: BusinessSummary[]; openNew: boolean }) {
   const router = useRouter()
   const [query, setQuery] = useState("")
   const [status, setStatus] = useState<"all" | BusinessStatus>("all")
@@ -74,7 +69,6 @@ export function BusinessesView({ businesses, openNew, plan }: { businesses: Busi
                   <TableHead>Owner</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Users</TableHead>
-                  <TableHead>Access until</TableHead>
                   <TableHead>Last active</TableHead>
                   <TableHead className="pr-4">Joined</TableHead>
                 </TableRow>
@@ -96,11 +90,9 @@ export function BusinessesView({ businesses, openNew, plan }: { businesses: Busi
                       <div className="flex flex-wrap gap-1">
                         <BusinessStatusPill status={b.status} />
                         {b.deletionRequestedAt && !b.deleteOn && <Pill tone="red">Wants deletion</Pill>}
-                        {b.cancelledAt && b.status !== "closing" && <Pill tone="gray">Cancelled</Pill>}
                       </div>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{b.userCount}</TableCell>
-                    <TableCell className="text-sm whitespace-nowrap text-muted-foreground">{formatDate(accessEndsAt(b))}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{b.lastActiveAt ? <TimeAgo at={b.lastActiveAt} /> : "Never"}</TableCell>
                     <TableCell className="pr-4 text-sm text-muted-foreground">{formatDate(b.createdAt)}</TableCell>
                   </TableRow>
@@ -113,7 +105,6 @@ export function BusinessesView({ businesses, openNew, plan }: { businesses: Busi
 
       {creating && (
         <CreateBusinessDialog
-          plan={plan}
           onClose={() => {
             setCreating(false)
             if (openNew) router.replace("/platform/businesses")
@@ -124,10 +115,10 @@ export function BusinessesView({ businesses, openNew, plan }: { businesses: Busi
   )
 }
 
-function CreateBusinessDialog({ plan, onClose }: { plan: Plan; onClose: () => void }) {
+function CreateBusinessDialog({ onClose }: { onClose: () => void }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
-  const [form, setForm] = useState({ name: "", industry: "", ownerName: "", ownerEmail: "", ownerPassword: "", freeTrial: plan.trialDays > 0 })
+  const [form, setForm] = useState({ name: "", industry: "", ownerName: "", ownerEmail: "", ownerPassword: "" })
   const [error, setError] = useState("")
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }))
   const required = useRequired()
@@ -171,17 +162,6 @@ function CreateBusinessDialog({ plan, onClose }: { plan: Plan; onClose: () => vo
               <Input id="nb-industry" value={form.industry} onChange={(e) => set("industry", e.target.value)} placeholder="e.g. Clothing" />
             </Field>
           </div>
-          <label className="flex items-center justify-between gap-4 rounded-lg border p-3">
-            <span>
-              <span className="block text-sm font-medium">{plan.trialDays} days free</span>
-              <span className="block text-xs text-muted-foreground">
-                {form.freeTrial
-                  ? `They use it free for ${plan.trialDays} days, then pay ${priceLabel(plan.monthlyPrice)}. If they don't, it locks until they do.`
-                  : `No free days: it stays locked until they pay ${priceLabel(plan.monthlyPrice)}, or you give them months.`}
-              </span>
-            </span>
-            <Switch checked={form.freeTrial} onCheckedChange={(on) => set("freeTrial", on)} disabled={plan.trialDays === 0} />
-          </label>
           <div className="space-y-4 rounded-lg border p-3">
             <p className="text-sm font-medium">Owner account</p>
             <div className="grid gap-4 sm:grid-cols-2">

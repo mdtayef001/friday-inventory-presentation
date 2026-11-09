@@ -2,7 +2,6 @@ from datetime import timedelta
 
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
-from django.utils import timezone
 
 # Mirrors frontend/src/lib/types.ts and frontend/src/lib/business.ts.
 
@@ -37,12 +36,6 @@ def default_settings():
 DELETION_GRACE_DAYS = 30
 
 
-def trial_end():
-    from apps.billing.models import PaymentAccounts  # billing imports this module
-
-    return timezone.now() + timedelta(days=PaymentAccounts.load().trial_days)
-
-
 class Business(models.Model):
     """One tenant. Every inventory row belongs to exactly one business."""
 
@@ -50,13 +43,8 @@ class Business(models.Model):
     industry = models.CharField(max_length=100, blank=True)
     # Set by the super admin. Blocks everyone, even after paying.
     suspended = models.BooleanField(default=False)
-    trial_ends_at = models.DateTimeField(default=trial_end)
-    # End of the last paid month. Null until the first payment.
-    paid_until = models.DateTimeField(null=True, blank=True)
     settings = models.JSONField(default=default_settings)
     created_at = models.DateTimeField(auto_now_add=True)
-    # The owner cancelled: nothing renews and no reminders show, but what's paid for runs to its end.
-    cancelled_at = models.DateTimeField(null=True, blank=True)
     # Deleting the business: the Owner asks, the super admin approves, and it's deleted
     # DELETION_GRACE_DAYS later. Either of them can stop it until then.
     deletion_requested_at = models.DateTimeField(null=True, blank=True)
@@ -86,29 +74,17 @@ class Business(models.Model):
 
     @property
     def status(self):
-        """trial | active | unpaid | closing | suspended. Worked out from dates, never stored.
+        """active | closing | suspended. Worked out from the flags, never stored.
         Closing: a deletion was approved, so it's locked until it's deleted."""
-        now = timezone.now()
         if self.suspended:
             return "suspended"
         if self.deletion_approved_at:
             return "closing"
-        if self.paid_until and self.paid_until > now:
-            return "active"
-        if self.trial_ends_at > now:
-            return "trial"
-        return "unpaid"
-
-    @property
-    def access_ends_at(self):
-        """End of the trial or of the paid month, whichever is later."""
-        if self.paid_until and self.paid_until > self.trial_ends_at:
-            return self.paid_until
-        return self.trial_ends_at
+        return "active"
 
     @property
     def is_open(self):
-        return self.status in ("trial", "active")
+        return self.status == "active"
 
     def module_on(self, module):
         return bool(self.settings.get("modules", {}).get(module))

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Building2, LayoutDashboard, Receipt, Settings2, ShieldCheck } from "lucide-react"
+import { Building2, LayoutDashboard, ShieldCheck } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -22,8 +22,6 @@ import { AccountMenu } from "./user-menu"
 const NAV = [
   { href: "/platform", label: "Overview", icon: LayoutDashboard, exact: true },
   { href: "/platform/businesses", label: "Businesses", icon: Building2 },
-  { href: "/platform/payments", label: "Payments", icon: Receipt },
-  { href: "/platform/payment-options", label: "Payment options", icon: Settings2 },
 ]
 
 export function PlatformSidebar() {

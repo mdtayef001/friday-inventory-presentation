@@ -68,7 +68,7 @@ export default function PrivacyPage() {
             <li>Owners can download all their business&apos;s data at any time, from Billing or Business settings.</li>
             <li>Owners and managers can correct or remove people, customers and records in the app.</li>
             <li>Owners can ask for the whole business to be deleted from Business settings.</li>
-            <li>Forgot your password? Owners message us on WhatsApp; managers and staff ask their owner, who can set a new one.</li>
+            <li>Forgot your password? Owners ask the platform admin; managers and staff ask their owner, who can set a new one.</li>
           </ul>
         </section>
 

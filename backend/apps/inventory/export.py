@@ -1,8 +1,7 @@
 """Everything a business has, as one ZIP of CSV files that open in Excel.
 
-For the owner (even while the business is locked for not paying) and the super admin,
-so a business can always take its records with it. Passwords and payment gateway
-details are never included."""
+For the owner (even while the business is locked) and the super admin, so a business
+can always take its records with it. Passwords are never included."""
 
 import csv
 import io
@@ -11,7 +10,6 @@ import zipfile
 from django.utils import timezone
 
 from apps.accounts.models import User
-from apps.billing.models import Payment
 
 from .models import (
     Activity, Client, Location, Product, Purchase, PurchaseItem, Rental, Sale, Shipment, StockLevel, StockRequest, Supplier,
@@ -132,10 +130,6 @@ def tables(business):
     yield "activity-log.csv", ["When", "Who", "What", "Details"], (
         [when(a.at), name(a.user), safe(a.action), safe(a.detail)]
         for a in Activity.objects.filter(**of).select_related("user").order_by("at", "id").iterator()
-    )
-    yield "subscription-payments.csv", ["Date", "Invoice", "Months", "Amount", "Method", "Status", "Reference"], (
-        [when(p.paid_at or p.created_at), p.invoice_no, p.months, p.amount, safe(p.method), p.get_status_display(), safe(p.reference)]
-        for p in Payment.objects.filter(**of).order_by("created_at")
     )
 
 

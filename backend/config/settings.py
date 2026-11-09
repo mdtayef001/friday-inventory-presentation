@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     "corsheaders",
     "apps.accounts",
     "apps.inventory",
-    "apps.billing",
 ]
 
 MIDDLEWARE = [
@@ -193,20 +192,8 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 60 * 60 * 24 * 30
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
-# ---------- Billing ----------
-
-# The monthly price and the free trial's length are set by the super admin on Payment options.
-SUBSCRIPTION_CURRENCY = "BDT"
-
-# Public address of the Next.js app; SSLCommerz sends owners back there.
+# Public address of the Next.js app.
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:3000")
-# Production only: allow the test gateway when no SSLCommerz keys are set. Never on a live site.
-PAYMENTS_TEST_GATEWAY = env_bool("PAYMENTS_TEST_GATEWAY", False)
 
-SSLCOMMERZ_STORE_ID = os.environ.get("SSLCOMMERZ_STORE_ID", "")
-SSLCOMMERZ_STORE_PASSWORD = os.environ.get("SSLCOMMERZ_STORE_PASSWORD", "")
-# Sandbox by default only while developing, so a live site never takes sandbox (unpaid) payments.
-SSLCOMMERZ_SANDBOX = env_bool("SSLCOMMERZ_SANDBOX", DEBUG)
-
-# Vercel Cron sends this as a Bearer token when calling /api/cron/cleanup/.
+# Sent as a Bearer token by whatever runs the daily cleanup job (/api/cron/cleanup/).
 CRON_SECRET = os.environ.get("CRON_SECRET", "")

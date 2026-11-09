@@ -16,14 +16,11 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from apps.billing import services as billing_services
-from apps.billing.serializers import GrantSerializer, PaymentSerializer
-from apps.billing.views import IsOwner
 from apps.inventory.export import business_zip
 from apps.inventory.services import log
 
 from .models import Business, DeletedBusiness, User
-from .permissions import IsSuperAdmin, IsTenantMember, ManagerNeedsPermission
+from .permissions import IsOwner, IsSuperAdmin, IsTenantMember, ManagerNeedsPermission
 from .serializers import (
     BusinessSerializer,
     BusinessSummarySerializer,
@@ -139,7 +136,7 @@ def zip_response(business):
 
 
 class BusinessExportView(APIView):
-    """The owner downloads everything their business has, even while it's locked for not paying.
+    """The owner downloads everything their business has, even while it's locked.
     Once every 10 minutes per business, so repeated clicks can't keep the server busy."""
 
     permission_classes = [IsOwner]
@@ -152,24 +149,6 @@ class BusinessExportView(APIView):
             raise Throttled(detail=f"You downloaded your data a few minutes ago. Try again in {wait} minute{'s' if wait != 1 else ''}.")
         log(request.user, "Data downloaded", "Everything, as a ZIP of spreadsheets")
         return zip_response(request.user.business)
-
-
-class SubscriptionView(APIView):
-    """The owner cancels (nothing renews, no reminders, access runs to the end of what's paid) or resumes."""
-
-    permission_classes = [IsOwner]
-
-    def post(self, request):
-        cancelled = request.data.get("cancelled")
-        if not isinstance(cancelled, bool):
-            raise ValidationError({"cancelled": "Send true or false."})
-        business = request.user.business
-        if cancelled != bool(business.cancelled_at):
-            business.cancelled_at = timezone.now() if cancelled else None
-            business.save(update_fields=["cancelled_at"])
-            ends = timezone.localtime(business.access_ends_at).strftime("%b %d, %Y")
-            log(request.user, "Subscription cancelled" if cancelled else "Subscription resumed", f"Access runs to {ends}")
-        return Response(BusinessSerializer(business).data)
 
 
 class DeletionRequestView(APIView):
@@ -237,17 +216,8 @@ class PlatformBusinessViewSet(
             {
                 "business": BusinessSummarySerializer(business).data,
                 "users": ManagedUserSerializer(users, many=True).data,
-                "payments": PaymentSerializer(business.payments.all(), many=True).data,
             }
         )
-
-    @action(detail=True, methods=["post"])
-    def grant(self, request, pk=None):
-        """Give months of access by hand: paid by bank or cash, or free."""
-        serializer = GrantSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        payment = billing_services.grant(self.get_object(), **serializer.validated_data)
-        return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"], url_path="approve-deletion")
     def approve_deletion(self, request, pk=None):

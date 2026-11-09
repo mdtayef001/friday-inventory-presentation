@@ -91,10 +91,6 @@ export function LoginForm({ showDemoAccounts }: { showDemoAccounts: boolean }) {
         </p>
         <p className="text-center text-xs text-muted-foreground">
           By logging in you agree to the{" "}
-          <Link href="/terms" className="underline underline-offset-2 hover:text-foreground">
-            Terms of Service
-          </Link>{" "}
-          and{" "}
           <Link href="/privacy" className="underline underline-offset-2 hover:text-foreground">
             Privacy Policy
           </Link>

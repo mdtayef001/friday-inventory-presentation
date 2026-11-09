@@ -6,7 +6,6 @@ import {
   ArrowLeftRight,
   Boxes,
   CalendarClock,
-  CreditCard,
   Factory,
   HandCoins,
   History,
@@ -83,7 +82,6 @@ const NAV = [
       { href: "/users", label: "Users & Staff", icon: UserCog },
       { href: "/activity", label: "Activity Log", icon: History },
       { href: "/settings", label: "Business Settings", icon: Settings },
-      { href: "/billing", label: "Billing", icon: CreditCard },
     ],
   },
 ]
@@ -114,7 +112,7 @@ export function AppSidebar() {
               </div>
               <div className="grid flex-1 text-left leading-tight">
                 <span className="truncate font-semibold">{business.name}</span>
-                <span className="truncate text-xs text-muted-foreground">{business.status === "trial" ? "Free trial" : "Inventory Manager"}</span>
+                <span className="truncate text-xs text-muted-foreground">{"Inventory Manager"}</span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>

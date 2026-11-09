@@ -7,13 +7,11 @@ before the backend existed (frontend/src/lib/store/seed.ts and friends).
 
 from datetime import timedelta
 
-from dateutil.relativedelta import relativedelta
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 
 from apps.accounts.models import Business, User, default_settings
-from apps.billing.models import Payment
 from apps.inventory.models import (
     Activity, Client, Location, PaymentAllocation, Product, Purchase, PurchaseItem, Rental, Shipment, ShipmentEvent, StockLevel, Supplier,
     SupplierPayment, Transfer,
@@ -117,18 +115,11 @@ class Command(BaseCommand):
 
         User.objects.create_superuser(email="super@friday.app", password="super123", name="Platform Admin")
 
-        demo = Business.objects.create(
-            name="Friday Demo Store", industry="Electronics & tools",
-            trial_ends_at=ago(113), paid_until=ago(-18),
-        )
+        demo = Business.objects.create(name="Friday Demo Store", industry="Electronics & tools")
         cafe_settings = default_settings()
         cafe_settings["modules"] = {"rentals": False, "tracking": True, "transfers": False, "trackingLinks": True}
-        cafe = Business.objects.create(
-            name="Green Leaf Café", industry="Food & beverage", trial_ends_at=ago(-2), settings=cafe_settings,
-        )
-        urban = Business.objects.create(
-            name="Urban Party Rentals", industry="Event rentals", trial_ends_at=ago(38), paid_until=ago(8),
-        )
+        cafe = Business.objects.create(name="Green Leaf Café", industry="Food & beverage", settings=cafe_settings)
+        urban = Business.objects.create(name="Urban Party Rentals", industry="Event rentals")
         # created_at is auto_now_add, so set it afterwards.
         for business, days in ((demo, 120), (cafe, 5), (urban, 45)):
             Business.objects.filter(pk=business.pk).update(created_at=ago(days))
@@ -148,7 +139,7 @@ class Command(BaseCommand):
         user("seller@friday.app", "Rafi Ahmed", "staff", demo, "staff123", [locs["main"]], can_add_stock=False)
         user("stocker@friday.app", "Mina Das", "staff", demo, "staff123", [locs["main"]], can_sell=False)
         user("cafe@friday.app", "Sara Khan", "owner", cafe, "cafe1234")
-        urban_owner = user("urban@friday.app", "Jamal Uddin", "owner", urban, "urban123")
+        user("urban@friday.app", "Jamal Uddin", "owner", urban, "urban123")
 
         products = {}
         for key, name, category, sku, barcode, price, cost, extra in PRODUCTS:
@@ -212,26 +203,6 @@ class Command(BaseCommand):
         ]:
             entry = Activity.objects.create(business=demo, user=who, action=action, detail=detail)
             Activity.objects.filter(pk=entry.pk).update(at=self.now - timedelta(hours=hours))
-
-        n = 0
-        for business, payer, days, method in [
-            (demo, owner, 113, "bKash"), (demo, owner, 72, "bKash"), (demo, owner, 42, "VISA-Dutch Bangla Bank"),
-            (urban, urban_owner, 38, "Nagad"), (demo, owner, 12, "bKash"),
-        ]:
-            n += 1
-            start = ago(days)
-            payment = Payment.objects.create(
-                tran_id=f"FRISEED{n:04d}", business=business, amount=1000, currency="BDT", status="paid",
-                method=method, paid_at=start, period_start=start, period_end=start + relativedelta(months=1),
-                invoice_no=f"INV-{start.year}-{n:04d}", val_id=f"SEED{n}", bank_tran_id=f"SEEDBANK{n}",
-                payer_name=payer.name, payer_email=payer.email, payer_phone="01711000000",
-            )
-            Payment.objects.filter(pk=payment.pk).update(created_at=start)
-        failed = Payment.objects.create(
-            tran_id="FRIURBANFAIL", business=urban, amount=1000, currency="BDT", status="failed",
-            payer_name=urban_owner.name, payer_email=urban_owner.email, payer_phone="01811000000",
-        )
-        Payment.objects.filter(pk=failed.pk).update(created_at=ago(3))
 
         self.stdout.write(self.style.SUCCESS("Demo data loaded. Logins:"))
         for email, password in [

@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { Store } from "lucide-react"
 
-/** Pages outside the app (password reset, terms): the name on top, a narrow column, and the legal links. */
+/** Pages outside the app: the name on top, a narrow column, and the legal links. */
 export function StandalonePage({ children, wide = false }: { children: React.ReactNode; wide?: boolean }) {
   return (
     <main className="flex min-h-svh flex-col items-center bg-muted/40 px-4 py-10">
@@ -20,10 +20,6 @@ export function StandalonePage({ children, wide = false }: { children: React.Rea
 export function LegalLinks({ className }: { className?: string }) {
   return (
     <p className={`text-center text-xs text-muted-foreground ${className ?? ""}`}>
-      <Link href="/terms" className="underline-offset-2 hover:underline">
-        Terms of Service
-      </Link>
-      {" · "}
       <Link href="/privacy" className="underline-offset-2 hover:underline">
         Privacy Policy
       </Link>

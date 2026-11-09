@@ -6,7 +6,7 @@ from .models import Business, User
 
 @admin.register(Business)
 class BusinessAdmin(admin.ModelAdmin):
-    list_display = ["name", "industry", "status", "trial_ends_at", "paid_until", "suspended", "created_at"]
+    list_display = ["name", "industry", "status", "suspended", "created_at"]
     list_filter = ["suspended"]
     search_fields = ["name"]
 

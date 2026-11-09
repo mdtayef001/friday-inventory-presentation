@@ -1,17 +1,16 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { CalendarX2, Loader2, RotateCcw, Trash2 } from "lucide-react"
+import { Loader2, RotateCcw, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { ConfirmAction, Field, useRequired } from "@/components/common"
-import { DownloadDataButton } from "@/components/billing"
+import { Field, useRequired } from "@/components/common"
+import { DownloadDataButton } from "@/components/your-data"
 import type { ActionResult } from "@/lib/api/server"
-import { cancelDeletion, requestDeletion, setSubscriptionCancelled } from "@/lib/auth/business-actions"
-import { accessEndsAt } from "@/lib/business"
+import { cancelDeletion, requestDeletion } from "@/lib/auth/business-actions"
 import { formatDate } from "@/lib/format"
 import type { Business } from "@/lib/types"
 
@@ -19,52 +18,6 @@ function showResult(result: ActionResult, success: string) {
   if (result.ok) toast.success(success)
   else toast.error(result.error)
   return result.ok
-}
-
-/**
- * On Billing: payments are never taken automatically, so cancelling means "don't renew".
- * Access runs to the end of what's paid, the reminders stop, and paying again undoes it.
- */
-export function CancelSubscriptionCard({ business }: { business: Business }) {
-  const [pending, startTransition] = useTransition()
-  const until = formatDate(accessEndsAt(business))
-  if (business.status === "closing") return null
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <CalendarX2 className="size-4 text-primary" />
-          {business.cancelledAt ? "Subscription cancelled" : "Cancel subscription"}
-        </CardTitle>
-        <CardDescription>
-          {business.cancelledAt
-            ? `You won't be reminded to pay. ${business.name} works until ${until}, then locks. Your data stays, and paying again starts it back up.`
-            : `Nothing is ever taken from you automatically, so cancelling just means you won't renew. You keep using ${business.name} until ${until}.`}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {business.cancelledAt ? (
-          <Button
-            variant="outline"
-            disabled={pending}
-            onClick={() => startTransition(async () => void showResult(await setSubscriptionCancelled(false), "Subscription resumed"))}
-          >
-            {pending ? <Loader2 className="animate-spin" /> : <RotateCcw />}
-            Keep my subscription
-          </Button>
-        ) : (
-          <ConfirmAction
-            trigger={<Button variant="outline">Cancel subscription</Button>}
-            title="Cancel your subscription?"
-            description={`You keep everything until ${until}. After that ${business.name} locks for your team until you pay again. Nothing is deleted.`}
-            confirmLabel="Cancel subscription"
-            destructive
-            onConfirm={async () => showResult(await setSubscriptionCancelled(true), `Cancelled. You can keep using it until ${until}.`)}
-          />
-        )}
-      </CardContent>
-    </Card>
-  )
 }
 
 /**

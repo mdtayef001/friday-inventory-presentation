@@ -2,21 +2,19 @@
 
 import { useState, useTransition } from "react"
 import Link from "next/link"
-import { Building2, Loader2, Puzzle, ReceiptText, ShieldCheck, Sparkles, Wallet } from "lucide-react"
+import { Building2, Loader2, Puzzle, ReceiptText, ShieldCheck, Wallet } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { YourDataCard } from "@/components/billing"
+import { YourDataCard } from "@/components/your-data"
 import { DeleteBusinessCard } from "@/components/leaving"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Field, PageBody, PageHeader, SimpleSelect, useRequired } from "@/components/common"
-import { BusinessStatusPill } from "@/components/platform"
 import { useBusiness, useSessionUser } from "@/components/session-provider"
 import { updateBusinessSettings } from "@/lib/auth/business-actions"
-import { priceLabel, CURRENCIES, CURRENCY_LABEL, MODULES, PERMISSIONS, accessEndsAt, daysLeft } from "@/lib/business"
-import { formatDate } from "@/lib/format"
+import { CURRENCIES, CURRENCY_LABEL, MODULES, PERMISSIONS } from "@/lib/business"
 import { cn } from "@/lib/utils"
 import type { BusinessSettings, ModuleId, PermissionId } from "@/lib/types"
 
@@ -243,7 +241,6 @@ export function SettingsView() {
         </div>
       </form>
 
-      <SubscriptionCard />
       <YourDataCard />
       <DeleteBusinessCard business={business} isMainOwner={user.isMainOwner} />
     </PageBody>
@@ -273,37 +270,5 @@ function ToggleRow({
       </span>
       <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
     </label>
-  )
-}
-
-function SubscriptionCard() {
-  const business = useBusiness()
-  const endsAt = accessEndsAt(business)
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Sparkles className="size-4 text-primary" />
-          Subscription
-        </CardTitle>
-        <CardDescription>One simple plan with everything included and no limits.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-2xl font-semibold tabular-nums">{priceLabel(business.monthlyPrice)}</p>
-          <p className="text-sm text-muted-foreground">
-            {business.cancelledAt
-              ? `Cancelled. Works until ${formatDate(endsAt)} · ${daysLeft(endsAt)} days left`
-              : `${business.status === "trial" ? "Free trial ends" : "Paid until"} ${formatDate(endsAt)} · ${daysLeft(endsAt)} days left`}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <BusinessStatusPill status={business.status} />
-          <Button variant="outline" render={<Link href="/billing" />} nativeButton={false}>
-            Billing & invoices
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
   )
 }

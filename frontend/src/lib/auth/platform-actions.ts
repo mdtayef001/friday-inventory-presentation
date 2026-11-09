@@ -3,7 +3,7 @@
 import { z } from "zod"
 import { api, apiOrNull, toResult, type ActionResult } from "@/lib/api/server"
 import { ApiError } from "@/lib/api/errors"
-import type { BusinessSummary, ManagedUser, Payment, PaymentAccounts } from "@/lib/types"
+import type { BusinessSummary, ManagedUser } from "@/lib/types"
 import { requireRole } from "./dal"
 
 // Super admin only. Every action re-checks the role here, and Django again.
@@ -15,16 +15,10 @@ export async function getBusinesses(): Promise<BusinessSummary[]> {
   return api("platform/businesses/")
 }
 
-export async function getBusiness(id: string): Promise<{ business: BusinessSummary; users: ManagedUser[]; payments: Payment[] } | null> {
+export async function getBusiness(id: string): Promise<{ business: BusinessSummary; users: ManagedUser[] } | null> {
   await requireSuper()
   if (!/^\d+$/.test(id)) return null
   return apiOrNull(businessPath(id))
-}
-
-/** Every payment attempt on the platform, newest first. */
-export async function getPayments(): Promise<Payment[]> {
-  await requireSuper()
-  return api("platform/payments/")
 }
 
 const CreateSchema = z.object({
@@ -33,7 +27,6 @@ const CreateSchema = z.object({
   ownerName: z.string().trim().min(2, "Owner name must be at least 2 characters").max(80),
   ownerEmail: z.email("Enter a valid owner email").trim(),
   ownerPassword: z.string().min(8, "Password must be at least 8 characters").max(128),
-  freeTrial: z.boolean(),
 })
 
 export async function createBusiness(input: z.input<typeof CreateSchema>): Promise<ActionResult & { id?: string }> {
@@ -49,7 +42,7 @@ export async function createBusiness(input: z.input<typeof CreateSchema>): Promi
   }
 }
 
-/** Switch a business off by hand, or back on. Paying doesn't lift a manual suspension. */
+/** Switch a business off by hand, or back on. */
 export async function setBusinessSuspended(id: string, suspended: boolean): Promise<ActionResult> {
   await requireSuper()
   if (typeof suspended !== "boolean") return { ok: false, error: "Invalid request." }
@@ -74,30 +67,4 @@ export async function decideDeletion(id: string, decision: "approve" | "stop"): 
 export async function deleteBusiness(id: string): Promise<ActionResult> {
   await requireSuper()
   return toResult(() => api(businessPath(id), { method: "DELETE" }))
-}
-
-/** Approve a payment sent by hand once the money arrived, or reject it with a reason for the owner. */
-export async function reviewPayment(id: string, decision: "approve" | "reject", note = ""): Promise<ActionResult> {
-  await requireSuper()
-  if (decision !== "approve" && decision !== "reject") return { ok: false, error: "Invalid request." }
-  return toResult(() => api(`platform/payments/${encodeURIComponent(id)}/${decision}/`, { method: "POST", body: { note } }))
-}
-
-export type GrantInput = { months: number; amount: number; method: string; reference: string; note: string }
-
-/** Give a business months of access by hand: paid by bank or cash, or free. */
-export async function grantAccess(id: string, input: GrantInput): Promise<ActionResult> {
-  await requireSuper()
-  return toResult(() => api(`${businessPath(id)}grant/`, { method: "POST", body: input }))
-}
-
-/** Every payment option, and whether SSLCommerz can take payments whatever its switch says. */
-export async function getPaymentAccounts(): Promise<PaymentAccounts & { onlineStatus: "connected" | "test" | "missing" }> {
-  await requireSuper()
-  return api("platform/payment-accounts/")
-}
-
-export async function savePaymentAccounts(input: PaymentAccounts): Promise<ActionResult> {
-  await requireSuper()
-  return toResult(() => api("platform/payment-accounts/", { method: "PUT", body: input }))
 }

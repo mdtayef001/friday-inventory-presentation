@@ -1,40 +1,17 @@
 import type { BusinessSettings, BusinessStatus, ModuleId, PaymentMethod, PermissionId } from "@/lib/types"
 
-// One subscription for every business: a flat monthly price, no usage limits. The price and
-// the free trial's length are set by the super admin on Payment options (the business's
-// monthlyPrice). When the trial or a paid month runs out the business locks itself until the owner pays.
-export const SUBSCRIPTION = { currency: "BDT", period: "month" } as const
-
-/** Shown on invoices as the seller. Change to your company details. The WhatsApp username for help is set by the super admin on Payment options. */
+/** Shown as the seller on receipts. Change to your company details. */
 export const PLATFORM = {
   name: "Friday Inventory",
   address: "Dhaka, Bangladesh",
 }
 
-/** Owners see a reminder when this many days or fewer are left. */
-export const REMINDER_DAYS = 3
-
-export function businessStatus(b: { suspended: boolean; trialEndsAt: string; paidUntil: string | null }, now = Date.now()): BusinessStatus {
-  if (b.suspended) return "suspended"
-  if (b.paidUntil && Date.parse(b.paidUntil) > now) return "active"
-  if (Date.parse(b.trialEndsAt) > now) return "trial"
-  return "unpaid"
-}
-
-/** When access runs out: end of the trial or of the paid month, whichever is later. */
-export function accessEndsAt(b: { trialEndsAt: string; paidUntil: string | null }) {
-  return b.paidUntil && b.paidUntil > b.trialEndsAt ? b.paidUntil : b.trialEndsAt
-}
-
-export function daysLeft(iso: string, now = Date.now()) {
-  return Math.max(0, Math.ceil((Date.parse(iso) - now) / 86_400_000))
+export function businessStatus(b: { suspended: boolean }): BusinessStatus {
+  return b.suspended ? "suspended" : "active"
 }
 
 /** "৳1,000" */
 export const formatTaka = (amount: number) => `৳${amount.toLocaleString("en-US")}`
-
-/** "৳1,000 / month" */
-export const priceLabel = (monthlyPrice: number) => `${formatTaka(monthlyPrice)} / ${SUBSCRIPTION.period}`
 
 export const MODULES: Record<ModuleId, { label: string; description: string }> = {
   rentals: { label: "Rentals", description: "Rent items out by day, week, month or a fixed price." },

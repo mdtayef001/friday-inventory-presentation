@@ -19,5 +19,5 @@ async function Business({ params }: Pick<PageProps<"/platform/businesses/[id]">,
   const { id } = await params
   const data = await getBusiness(id)
   if (!data) notFound()
-  return <BusinessDetailView business={data.business} users={data.users} payments={data.payments} />
+  return <BusinessDetailView business={data.business} users={data.users} />
 }

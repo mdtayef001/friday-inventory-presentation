@@ -29,7 +29,7 @@ class AccountTests(APITestCase):
         self.login("owner@x.com")
         data = self.client.get("/api/auth/me/").json()
         self.assertEqual(data["user"]["id"], str(self.owner.id))
-        self.assertEqual(data["business"]["status"], "trial")
+        self.assertEqual(data["business"]["status"], "active")
 
     def test_disabled_user_is_logged_out_immediately(self):
         self.login("owner@x.com")
@@ -71,19 +71,12 @@ class AccountTests(APITestCase):
         detail = self.client.get(f"/api/platform/businesses/{res.json()['id']}/").json()
         self.assertEqual(len(detail["users"]), 1)
 
-    def test_new_business_gets_the_trial_set_by_the_super_admin_or_none(self):
-        from apps.billing.models import PaymentAccounts
-
-        accounts = PaymentAccounts.load()
-        accounts.trial_days = 14
-        accounts.save()
+    def test_a_new_business_opens_right_away(self):
         self.login("root@x.com")
         body = {"name": "New Co", "ownerName": "Nia", "ownerPassword": PASSWORD}
-        trial = self.client.post("/api/platform/businesses/", {**body, "ownerEmail": "nia@x.com"}, format="json").json()
-        self.assertEqual(trial["status"], "trial")
-        self.assertEqual(Business.objects.get(pk=trial["id"]).access_ends_at.date(), (timezone.now() + timedelta(days=14)).date())
-        none = self.client.post("/api/platform/businesses/", {**body, "ownerEmail": "tia@x.com", "freeTrial": False}, format="json").json()
-        self.assertEqual(none["status"], "unpaid")
+        made = self.client.post("/api/platform/businesses/", {**body, "ownerEmail": "nia@x.com"}, format="json").json()
+        self.assertEqual(made["status"], "active")
+        self.assertTrue(Business.objects.get(pk=made["id"]).is_open)
 
     def test_super_admin_resets_password_and_deletes_business(self):
         self.login("root@x.com")
@@ -230,7 +223,7 @@ class SeedDemoTests(APITestCase):
 
 @override_settings(CRON_SECRET="a-cron-secret")
 class LeavingTests(APITestCase):
-    """Owners can cancel the subscription, take their data, and ask for the business to be deleted."""
+    """Owners can take their data and ask for the business to be deleted."""
 
     def setUp(self):
         cache.clear()
@@ -245,25 +238,6 @@ class LeavingTests(APITestCase):
         res = self.client.post("/api/auth/login/", {"email": email, "password": PASSWORD}, format="json")
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {res.json()['access']}")
 
-    def test_cancel_and_resume_the_subscription(self):
-        self.login("owner@x.com")
-        res = self.client.post("/api/business/subscription/", {"cancelled": True}, format="json")
-        self.assertIsNotNone(res.json()["cancelledAt"])
-        self.assertEqual(res.json()["status"], "trial")  # keeps what's left
-        self.assertEqual(self.client.post("/api/business/subscription/", {"cancelled": "yes"}, format="json").status_code, 400)
-        self.assertIsNone(self.client.post("/api/business/subscription/", {"cancelled": False}, format="json").json()["cancelledAt"])
-        self.login("staff@x.com")
-        self.assertEqual(self.client.post("/api/business/subscription/", {"cancelled": True}, format="json").status_code, 403)
-
-    def test_paying_again_undoes_a_cancel(self):
-        self.biz.cancelled_at = timezone.now()
-        self.biz.save()
-        self.login("root@x.com")
-        res = self.client.post(f"/api/platform/businesses/{self.biz.id}/grant/", {"months": 1, "amount": "0", "method": "free"}, format="json")
-        self.assertEqual(res.status_code, 201, res.content)
-        self.biz.refresh_from_db()
-        self.assertIsNone(self.biz.cancelled_at)
-
     def test_data_download_once_every_ten_minutes(self):
         self.login("owner@x.com")
         self.assertEqual(self.client.get("/api/business/export/").status_code, 200)
@@ -277,7 +251,7 @@ class LeavingTests(APITestCase):
         self.login("owner@x.com")
         self.assertEqual(self.client.post("/api/business/deletion/", {"name": "Shops"}, format="json").status_code, 400)
         res = self.client.post("/api/business/deletion/", {"name": " shop "}, format="json")
-        self.assertEqual((res.json()["deletionRequestedBy"], res.json()["status"]), ("Owner", "trial"))  # nothing locks until approved
+        self.assertEqual((res.json()["deletionRequestedBy"], res.json()["status"]), ("Owner", "active"))  # nothing locks until approved
 
         self.login("root@x.com")
         res = self.client.post(f"/api/platform/businesses/{self.biz.id}/approve-deletion/", format="json")
@@ -287,14 +261,13 @@ class LeavingTests(APITestCase):
         self.assertEqual(self.client.get("/api/products/").status_code, 403)
         self.login("owner@x.com")
         self.assertEqual(self.client.get("/api/business/export/").status_code, 200)
-        self.assertEqual(self.client.post("/api/billing/manual/", {}, format="json").status_code, 400)
-        self.assertEqual(self.client.delete("/api/business/deletion/").json()["status"], "trial")
+        self.assertEqual(self.client.delete("/api/business/deletion/").json()["status"], "active")
 
         # Asked and approved again; the daily job deletes it once the 30 days are up.
         self.client.post("/api/business/deletion/", {"name": "Shop"}, format="json")
         self.login("root@x.com")
         self.client.post(f"/api/platform/businesses/{self.biz.id}/approve-deletion/", format="json")
-        self.client.credentials(HTTP_AUTHORIZATION="Bearer a-cron-secret")  # as Vercel Cron calls it
+        self.client.credentials(HTTP_AUTHORIZATION="Bearer a-cron-secret")  # as the cron job calls it
         cron = lambda: self.client.get("/api/cron/cleanup/")  # noqa: E731
         cron()
         self.assertTrue(Business.objects.filter(pk=self.biz.pk).exists())

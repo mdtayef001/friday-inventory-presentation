@@ -14,8 +14,16 @@ class IsSuperAdmin(BasePermission):
         return request.user.is_authenticated and request.user.is_superadmin
 
 
+class IsOwner(BasePermission):
+    """The business owner, even while the business is locked."""
+
+    def has_permission(self, request, view):
+        user = request.user
+        return user.is_authenticated and user.role == User.Role.OWNER and user.business_id is not None
+
+
 class IsTenantMember(BasePermission):
-    """A logged-in user of a business that is open (in trial or paid up).
+    """A logged-in user of a business that is open (not suspended or being deleted).
 
     Views narrow this further with `allowed_roles`, `module` and
     `manager_permission` attributes.
@@ -32,7 +40,7 @@ class IsTenantMember(BasePermission):
         if not business.is_open:
             self.message = (
                 "This business is being deleted." if business.status == "closing"
-                else "Your business is locked. The owner needs to renew the subscription."
+                else "Your business has been suspended."
             )
             return False
 

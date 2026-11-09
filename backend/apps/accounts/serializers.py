@@ -1,6 +1,5 @@
 from django.contrib.auth.password_validation import validate_password
 from django.db.models import Max
-from django.utils import timezone
 from django.utils.functional import cached_property
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -58,29 +57,18 @@ class SessionUserSerializer(serializers.ModelSerializer):
 class BusinessSerializer(serializers.ModelSerializer):
     id = IdField()
     status = serializers.CharField(read_only=True)
-    # The same for every business, set by the super admin.
-    monthly_price = serializers.SerializerMethodField()
     deletion_requested_by = serializers.CharField(source="deletion_requested_by.name", read_only=True, default=None)
     delete_on = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = Business
         fields = [
-            "id", "name", "industry", "status", "suspended", "trial_ends_at", "paid_until", "created_at", "settings", "monthly_price",
-            "cancelled_at", "deletion_requested_at", "deletion_requested_by", "deletion_approved_at", "delete_on",
+            "id", "name", "industry", "status", "suspended", "created_at", "settings",
+            "deletion_requested_at", "deletion_requested_by", "deletion_approved_at", "delete_on",
         ]
         read_only_fields = [
-            "suspended", "trial_ends_at", "paid_until", "created_at", "cancelled_at", "deletion_requested_at", "deletion_approved_at",
+            "suspended", "created_at", "deletion_requested_at", "deletion_approved_at",
         ]
-
-    @cached_property
-    def price(self):
-        from apps.billing.models import PaymentAccounts  # billing imports accounts
-
-        return PaymentAccounts.load().monthly_price
-
-    def get_monthly_price(self, business):
-        return self.price
 
     def validate_name(self, value):
         value = value.strip()
@@ -243,9 +231,6 @@ class BusinessWithOwnerSerializer(serializers.Serializer):
     owner_name = serializers.CharField(max_length=80, min_length=2)
     owner_email = serializers.EmailField()
     owner_password = serializers.CharField(min_length=8, max_length=128)
-    # Off: no free days, the business opens once it pays or the super admin gives it months.
-    free_trial = serializers.BooleanField(default=True)
-
     def validate_owner_email(self, value):
         value = value.lower()
         if User.objects.filter(email=value).exists():
@@ -254,9 +239,6 @@ class BusinessWithOwnerSerializer(serializers.Serializer):
 
     def create(self, validated):
         business = Business.objects.create(name=validated["name"].strip(), industry=validated.get("industry", "").strip())
-        if not validated["free_trial"]:
-            business.trial_ends_at = timezone.now()
-            business.save(update_fields=["trial_ends_at"])
         # A brand-new business starts with one shop, like the frontend's createEmpty().
         Location.objects.create(
             business=business, name="Main Store", type=Location.Type.OUTLET,

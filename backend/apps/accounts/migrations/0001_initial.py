@@ -23,7 +23,7 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(max_length=200)),
                 ('industry', models.CharField(blank=True, max_length=100)),
                 ('suspended', models.BooleanField(default=False)),
-                ('trial_ends_at', models.DateTimeField(default=apps.accounts.models.trial_end)),
+                ('trial_ends_at', models.DateTimeField(default=django.utils.timezone.now)),
                 ('paid_until', models.DateTimeField(blank=True, null=True)),
                 ('settings', models.JSONField(default=apps.accounts.models.default_settings)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),

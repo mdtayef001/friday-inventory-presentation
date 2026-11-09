@@ -32,7 +32,6 @@ const TITLES: Record<string, string> = {
   users: "Users & Staff",
   activity: "Activity Log",
   settings: "Business Settings",
-  billing: "Billing",
 }
 
 export function AppHeader() {

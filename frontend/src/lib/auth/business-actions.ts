@@ -37,13 +37,6 @@ export async function updateBusinessSettings(input: z.input<typeof SettingsSchem
   return toResult(() => api("business/", { method: "PATCH", body: parsed.data }))
 }
 
-/** Owner: stop renewing (access runs to the end of what's paid), or take it back. Works while locked. */
-export async function setSubscriptionCancelled(cancelled: boolean): Promise<ActionResult> {
-  await requireOwner()
-  if (typeof cancelled !== "boolean") return { ok: false, error: "Invalid request." }
-  return toResult(() => api("business/subscription/", { method: "POST", body: { cancelled } }))
-}
-
 /** The Owner asks for the business to be deleted, typing its name to be sure. The super admin approves it. */
 export async function requestDeletion(name: string): Promise<ActionResult> {
   await requireOwner()

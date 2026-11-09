@@ -77,7 +77,7 @@ class TenantTests(ApiTestCase):
         self.assertEqual(res.status_code, 400)
 
     def test_locked_business_is_refused(self):
-        self.biz.trial_ends_at = timezone.now() - timedelta(days=1)
+        self.biz.suspended = True
         self.biz.save()
         self.login("owner@a.com")
         self.assertEqual(self.client.get("/api/products/").status_code, 403)
@@ -222,7 +222,7 @@ class PublicTrackingTests(ApiTestCase):
         self.assertEqual(self.track().status_code, 404)
 
     def test_locked_business_hides_links(self):
-        self.biz.trial_ends_at = timezone.now() - timedelta(days=1)
+        self.biz.suspended = True
         self.biz.save()
         self.assertEqual(self.track().status_code, 404)
 
@@ -863,7 +863,7 @@ class ReceiptTests(PaymentsBase):
             self.assertNotIn(private, body)
         self.assertEqual(self.client.get("/api/receipts/not-a-real-token/").status_code, 404)
         self.assertEqual(self.client.get(f"/api/receipts/{sale['receiptNo']}/").status_code, 404)
-        self.biz.trial_ends_at = timezone.now() - timedelta(days=1)
+        self.biz.suspended = True
         self.biz.save()
         self.assertEqual(self.client.get(f"/api/receipts/{sale['receiptToken']}/").status_code, 404)
 
@@ -1542,7 +1542,7 @@ class ExportTests(PurchaseBase):
         self.client.patch(f"/api/products/{self.product.id}/", {"name": "=HYPERLINK(1)"}, format="json")
         self.sell(quantity=1)
         Product.objects.create(business=self.other_biz, sku="X", name="Theirs")
-        self.biz.trial_ends_at = timezone.now() - timedelta(days=1)
+        self.biz.suspended = True
         self.biz.save()
 
         status, files = self.download()
@@ -1624,6 +1624,6 @@ class RefusalMessageTests(PurchaseBase):
         self.biz.settings["modules"]["purchases"] = False
         self.biz.save()
         self.assertEqual(self.client.get("/api/purchases/").json()["detail"], "This feature is switched off in Business settings.")
-        self.biz.trial_ends_at = timezone.now() - timedelta(days=1)
+        self.biz.suspended = True
         self.biz.save()
-        self.assertIn("locked", self.client.get("/api/products/").json()["detail"])
+        self.assertIn("suspended", self.client.get("/api/products/").json()["detail"])

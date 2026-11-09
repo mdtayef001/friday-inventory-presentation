@@ -2,7 +2,6 @@ import { Suspense } from "react"
 import { redirect } from "next/navigation"
 import { AppHeader } from "@/components/app-header"
 import { AppSidebar } from "@/components/app-sidebar"
-import { SubscriptionBanner } from "@/components/billing"
 import { CartProvider } from "@/components/cart"
 import { SessionProvider } from "@/components/session-provider"
 import { PageSkeleton, StoreGate } from "@/components/store-gate"
@@ -23,7 +22,7 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
   if (!ctx) redirect("/logout")
   const { user, business, locked } = ctx
   if (!business) redirect("/platform")
-  if (locked) redirect("/subscribe")
+  if (locked) redirect("/settings")
 
   return (
     <SessionProvider user={user} business={business}>
@@ -33,7 +32,6 @@ async function AuthenticatedShell({ children }: { children: React.ReactNode }) {
             <AppSidebar />
             <SidebarInset className="min-w-0">
               <AppHeader />
-              <SubscriptionBanner />
               <main className="flex-1">{children}</main>
             </SidebarInset>
           </SidebarProvider>

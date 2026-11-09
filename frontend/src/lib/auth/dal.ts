@@ -10,7 +10,7 @@ export interface Context {
   user: SessionUser
   /** The user's business. Null only for the platform super admin. */
   business: Business | null
-  /** Trial or paid month ran out. Only the owner gets in, and only to pay. */
+  /** The business is being deleted. Only the owner gets in, to take their data or stop it. */
   locked: boolean
 }
 
@@ -30,8 +30,8 @@ export const getContext = cache(async (): Promise<Context | null> => {
   const { user, business } = me
   if (user.role === "superadmin") return { user, business: null, locked: false }
   if (!business || business.status === "suspended") return null
-  // Unpaid, or being deleted: only the owner gets in, to pay, download their data or stop the deletion.
-  const locked = business.status === "unpaid" || business.status === "closing"
+  // Being deleted: only the owner gets in, to download their data or stop the deletion.
+  const locked = business.status === "closing"
   if (locked && user.role !== "owner") return null
   return { user, business, locked }
 })
@@ -44,7 +44,7 @@ export async function getCurrentUser() {
 export async function requireRole(roles: Role[]): Promise<Context> {
   const ctx = await getContext()
   if (!ctx) redirect("/logout")
-  if (ctx.locked) redirect("/subscribe")
+  if (ctx.locked) redirect("/settings")
   if (!roles.includes(ctx.user.role)) redirect(ROLE_HOME[ctx.user.role])
   return ctx
 }
@@ -53,13 +53,13 @@ export async function requireRole(roles: Role[]): Promise<Context> {
 export async function requireAccess(path: string): Promise<{ user: SessionUser; business: Business }> {
   const ctx = await getContext()
   if (!ctx) redirect("/logout")
-  if (ctx.locked) redirect("/subscribe")
+  if (ctx.locked) redirect("/settings")
   const { user, business } = ctx
   if (!business || !canAccess(user, path, business.settings)) redirect(ROLE_HOME[user.role])
   return { user, business }
 }
 
-/** Billing pages: the owner, even while the business is locked for not paying. */
+/** Owner-only pages: the owner, even while the business is locked. */
 export async function requireOwner(): Promise<{ user: SessionUser; business: Business; locked: boolean }> {
   const ctx = await getContext()
   if (!ctx) redirect("/logout")

@@ -1,8 +1,6 @@
-import { getSupport } from "@/lib/billing/queries"
-import { WhatsAppLink } from "@/components/whatsapp-link"
 import { PLATFORM } from "@/lib/business"
 
-/** Shared look for the Terms and Privacy pages. */
+/** Shared look for the Privacy page. */
 export function LegalDoc({ title, updated, children }: { title: string; updated: string; children: React.ReactNode }) {
   return (
     <article className="rounded-xl border bg-background p-6 sm:p-10">
@@ -17,18 +15,11 @@ export function LegalDoc({ title, updated, children }: { title: string; updated:
   )
 }
 
-/** How to reach us: the super admin's WhatsApp username, loaded per request so a change shows at once. */
-export async function Contact() {
-  const { whatsapp } = await getSupport()
+/** How to reach us, at the bottom of the Privacy page. */
+export function Contact() {
   return (
     <p>
-      Questions?{" "}
-      {whatsapp ? (
-        <>
-          Message us on WhatsApp: <WhatsAppLink username={whatsapp} />.{" "}
-        </>
-      ) : null}
-      {PLATFORM.name}, {PLATFORM.address}.
+      Questions? {PLATFORM.name}, {PLATFORM.address}.
     </p>
   )
 }

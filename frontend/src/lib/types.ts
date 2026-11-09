@@ -44,13 +44,12 @@ export interface ManagedUser extends SessionUser {
 // ---------- Platform (multi-business) ----------
 
 /**
- * Worked out from dates on every request, never stored:
- * trial: inside the 7-day free trial. active: paid up.
- * unpaid: trial or paid month ran out, so access is locked until the owner pays.
+ * Worked out on every request, never stored:
+ * active: open for business.
  * closing: the super admin approved the owner's request to delete it; locked until it's deleted.
  * suspended: the super admin switched the business off by hand.
  */
-export type BusinessStatus = "trial" | "active" | "unpaid" | "closing" | "suspended"
+export type BusinessStatus = "active" | "closing" | "suspended"
 export type ModuleId = "rentals" | "tracking" | "transfers" | "trackingLinks" | "purchases"
 
 /** Things an owner can switch on or off for managers and staff. */
@@ -93,97 +92,16 @@ export interface Business {
   name: string
   industry: string
   status: BusinessStatus
-  /** Set by the super admin. Blocks everyone, even after paying. */
+  /** Set by the super admin. Blocks everyone. */
   suspended: boolean
-  trialEndsAt: string
-  /** End of the last paid month. Null until the first payment. */
-  paidUntil: string | null
   createdAt: string
   settings: BusinessSettings
-  /** What it pays a month. The same for every business, set by the super admin. */
-  monthlyPrice: number
-  /** The owner cancelled: nothing renews and no reminders show; access runs to the end of what's paid. */
-  cancelledAt: string | null
   /** The Owner asked for the business to be deleted. */
   deletionRequestedAt: string | null
   deletionRequestedBy: string | null
   /** The super admin approved it: locked now, deleted on `deleteOn` unless stopped. */
   deletionApprovedAt: string | null
   deleteOn: string | null
-}
-
-/** "awaiting": sent by hand (bKash, bank...), waiting for the super admin to approve it. */
-export type PaymentStatus = "pending" | "awaiting" | "paid" | "failed" | "cancelled" | "rejected"
-
-export interface Payment {
-  id: string
-  /** Our transaction id, sent to SSLCommerz as tran_id. */
-  tranId: string
-  businessId: string
-  businessName: string
-  amount: number
-  currency: string
-  status: PaymentStatus
-  /** e.g. "bKash", "VISA-Dutch Bangla". Filled in once paid. */
-  method?: string
-  createdAt: string
-  paidAt?: string
-  /** The month this payment covers. */
-  periodStart?: string
-  periodEnd?: string
-  invoiceNo?: string
-  /** SSLCommerz references, kept for support and refunds. */
-  valId?: string
-  bankTranId?: string
-  payer: { name: string; email: string; phone: string }
-  /** "online" through SSLCommerz, or "manual": sent by hand, or months given by the super admin. */
-  channel: "online" | "manual"
-  months: number
-  /** Sent by hand: the TrxID or bank reference, and the number or account it came from. */
-  reference: string
-  sentFrom: string
-  /** The super admin's note, e.g. why it was rejected. */
-  note: string
-  reviewedAt: string | null
-}
-
-export type WalletId = "bkash" | "nagad" | "rocket" | "upay"
-/** What the owner does in their wallet app: Send Money, Cash Out or Payment. */
-export type WalletKind = "personal" | "agent" | "merchant"
-
-/** Every payment option, as the super admin edits them. */
-export type PaymentAccounts = {
-  /** What every business pays a month, in taka. Payments already made keep their amount. */
-  monthlyPrice: number
-  /** Free days a new business gets, unless it's created without a trial. */
-  trialDays: number
-  onlineEnabled: boolean
-  mobileEnabled: boolean
-  bankEnabled: boolean
-  bankName: string
-  bankAccountName: string
-  bankAccountNumber: string
-  bankBranch: string
-  bankRouting: string
-  /** WhatsApp username owners message for help; shown instead of a phone number. */
-  whatsapp: string
-} & Record<WalletId, string> &
-  Record<`${WalletId}Kind`, WalletKind>
-
-/** What owners see: only the options that are on and filled in. */
-export interface PaymentOptions {
-  wallets: { id: WalletId; label: string; number: string; kind: WalletKind }[]
-  bank: { name: string; accountName: string; accountNumber: string; branch: string; routing: string } | null
-  whatsapp: string
-}
-
-export interface BillingConfig {
-  testGateway: boolean
-  /** Turned on by the super admin, and SSLCommerz is connected (or the test gateway is on). */
-  online: boolean
-  options: PaymentOptions
-  /** What a month costs right now. */
-  monthlyPrice: number
 }
 
 export interface BusinessSummary extends Business {
