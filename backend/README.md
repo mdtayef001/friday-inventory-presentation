@@ -35,8 +35,8 @@ and a Supabase project in Singapore (`ap-southeast-1`).
 - **backend** (Root Directory `backend`): Vercel finds Django from `manage.py` and runs `collectstatic`.
   Environment: `DATABASE_URL` (Supabase *Transaction pooler*, port 6543, `?sslmode=require`),
   `DJANGO_SECRET_KEY`, `JWT_SIGNING_KEY`, `DJANGO_ALLOWED_HOSTS` (the backend's
-  domain), `CORS_ALLOWED_ORIGINS` and `FRONTEND_URL` (the frontend's address), `CRON_SECRET`,
-  and the `SSLCOMMERZ_*` keys. Leave `DJANGO_DEBUG` unset.
+  domain), `CORS_ALLOWED_ORIGINS` and `FRONTEND_URL` (the frontend's address), and `CRON_SECRET`.
+  Leave `DJANGO_DEBUG` unset.
 - **frontend** (Root Directory `frontend`): `API_URL` (`https://<backend domain>/api`) and the same
   `JWT_SIGNING_KEY` as the backend.
 
@@ -59,7 +59,6 @@ reads the database, and the Data API would otherwise expose its tables over HTTP
 | `apps/accounts/` | `Business` (tenant), `User` (role + locations), JWT login, role permissions |
 | `apps/inventory/` | Locations, products, stock, clients, shipments, rentals, transfers, activity log |
 | `apps/inventory/services.py` | Every stock-changing action, atomic and logged |
-| `apps/billing/` | Subscription payments: SSLCommerz checkout and validation, money sent by hand and approved by the super admin, invoices |
 | `apps/api.py` | Shared serializer fields (ids go out as strings, like the frontend's types) |
 
 JSON is camelCase on the wire, matching `frontend/src/lib/types.ts`.
@@ -70,8 +69,8 @@ JSON is camelCase on the wire, matching `frontend/src/lib/types.ts`.
 `owner` sees everything in their business. `manager` and `staff` are limited
 to their assigned locations, and the owner's switches in business settings
 (`modules`, `permissions`) turn features on and off for them, the same rules as
-`frontend/src/lib/auth/roles.ts`. A business whose trial or paid month has run
-out, or that is suspended, gets 403 on every tenant endpoint.
+`frontend/src/lib/auth/roles.ts`. A business that is suspended, or whose
+deletion has been approved, gets 403 on every tenant endpoint.
 
 ## Endpoints (all under `/api/`)
 
@@ -85,8 +84,6 @@ out, or that is suspended, gets 403 on every tenant endpoint.
 | `shipments/` + `POST {id}/status/` | owner, manager (tracking module) |
 | `rentals/` + `POST {id}/return/` | owner, manager (rentals module) |
 | `transfers/` + `POST {id}/receive/` · `{id}/cancel/` | owner, manager (transfers module) |
-| `GET billing/payments/` · `POST billing/checkout/` · `POST billing/manual/` · `GET billing/config/` | owner (even while locked); `manual` records money sent by bKash/Nagad/Rocket/bank, waiting for the super admin |
-| `GET billing/payments/{id}/` | that business's owner, super admin (invoices) |
 | `GET sales/summary/` (filters: `from`, `to`, `location`, `product`, `seller`, `channel`; includes the chart series and top products) | owner, manager |
 | `GET sales/export/` (same filters) | owner, manager; CSV, profit columns only for those allowed to see profit |
 | `sales/` (`POST` to sell) | everyone sells at their own shops; owners and managers list; cost and profit for owners only |
@@ -95,5 +92,4 @@ out, or that is suspended, gets 403 on every tenant endpoint.
 | `supplier-returns/` + `POST {id}/replacement/` · `{id}/refund/` · `{id}/credit/` · `{id}/close/` · `GET summary/` | same access; credit and close are owners only |
 | `supplier-payments/` + `GET summary/` · `GET suppliers/{id}/statement/` | owners only; a payment is given to the supplier's oldest unpaid bills |
 | `GET track/{token}/` | public; a client's order status, nothing internal |
-| `POST billing/sslcommerz/{result}/` | public; the frontend forwards SSLCommerz's callbacks, Django validates them |
-| `platform/businesses/` + `POST {id}/suspend/` · `{id}/grant/`, `DELETE`, `platform/payments/` + `POST {id}/approve/` · `{id}/reject/`, `platform/payment-accounts/`, `POST platform/users/{id}/password/` | super admin; `grant` gives months paid outside Friday or free |
+| `platform/businesses/` + `POST {id}/suspend/` · `{id}/approve-deletion/` · `{id}/stop-deletion/`, `DELETE`, `POST platform/users/{id}/password/` | super admin |
