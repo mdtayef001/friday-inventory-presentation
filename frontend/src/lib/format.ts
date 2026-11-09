@@ -46,7 +46,7 @@ export function formatMoneyShort(value: number) {
 }
 export const formatNumber = (value: number) => number.format(value)
 // The shops are in Bangladesh, so dates read in Dhaka time on every device. The server (UTC on
-// Vercel) and the browser must agree, or React throws away the server's page (error #418).
+// the host) and the browser must agree, or React throws away the server's page (error #418).
 // Built from parts, since the space before "AM" differs between ICU versions.
 export const TIME_ZONE = "Asia/Dhaka"
 const dateParts = new Intl.DateTimeFormat("en-US", { timeZone: TIME_ZONE, month: "short", day: "numeric", year: "numeric" })

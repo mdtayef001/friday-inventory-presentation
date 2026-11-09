@@ -87,12 +87,12 @@ DATABASES = {
     )
 }
 if DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql":
-    # Supabase's transaction pooler (port 6543, used on Vercel) hands each transaction to a
+    # A transaction pooler (e.g. Supabase's on port 6543, used by serverless hosts) hands each transaction to a
     # different server connection, which breaks prepared statements and server-side cursors.
     DATABASES["default"].setdefault("OPTIONS", {})["prepare_threshold"] = None
     DATABASES["default"]["DISABLE_SERVER_SIDE_CURSORS"] = True
 
-# The login rate limit lives in the cache. On Vercel each function instance has its own memory,
+# The login rate limit lives in the cache. On serverless hosting each instance has its own memory,
 # so with PostgreSQL keep it in a database table every instance shares (made by createcachetable).
 CACHES = {
     "default": (
@@ -102,7 +102,7 @@ CACHES = {
     )
 }
 
-# Send warnings and errors (with tracebacks) to stdout, where Vercel's logs pick them up.
+# Send warnings and errors (with tracebacks) to stdout, where the host's logs pick them up.
 # Django's default only prints them while DEBUG is on.
 LOGGING = {
     "version": 1,

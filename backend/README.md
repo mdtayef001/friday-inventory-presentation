@@ -27,29 +27,29 @@ back to how it started.
 
 Run the tests with `python manage.py test apps`.
 
-## Deploying (Vercel + Supabase)
+## Deploying
 
-Two Vercel projects from this repository, both in Singapore (`sin1`, set in each `vercel.json`),
-and a Supabase project in Singapore (`ap-southeast-1`).
+This branch carries no host-specific configuration: deploy it wherever you like.
 
-- **backend** (Root Directory `backend`): Vercel finds Django from `manage.py` and runs `collectstatic`.
-  Environment: `DATABASE_URL` (Supabase *Transaction pooler*, port 6543, `?sslmode=require`),
-  `DJANGO_SECRET_KEY`, `JWT_SIGNING_KEY`, `DJANGO_ALLOWED_HOSTS` (the backend's
-  domain), `CORS_ALLOWED_ORIGINS` and `FRONTEND_URL` (the frontend's address), and `CRON_SECRET`.
-  Leave `DJANGO_DEBUG` unset.
-- **frontend** (Root Directory `frontend`): `API_URL` (`https://<backend domain>/api`) and the same
-  `JWT_SIGNING_KEY` as the backend.
+- **backend**: serve `config.wsgi` behind a real server, run `collectstatic`, and set
+  `DATABASE_URL` (PostgreSQL, `?sslmode=require`), `DJANGO_SECRET_KEY`, `JWT_SIGNING_KEY`,
+  `DJANGO_ALLOWED_HOSTS` (the backend's domain), `CORS_ALLOWED_ORIGINS` and `FRONTEND_URL`
+  (the frontend's address), and `CRON_SECRET`. Leave `DJANGO_DEBUG` unset.
+- **frontend**: `API_URL` (`https://<backend domain>/api`) and the same `JWT_SIGNING_KEY`
+  as the backend.
 
-Vercel doesn't run migrations. Before deploying a change that adds one, run it against production
-from here, with the *Session pooler* string (port 5432):
+Run migrations yourself against the production database before a release that adds one:
 
 ```bash
-DATABASE_URL='postgresql://…pooler.supabase.com:5432/postgres?sslmode=require' \
+DATABASE_URL='postgresql://…:5432/postgres?sslmode=require' \
   sh -c 'python manage.py migrate && python manage.py createcachetable'
 ```
 
-In Supabase, turn off the Data API (Project Settings → Data API): Django is the only thing that
-reads the database, and the Data API would otherwise expose its tables over HTTP.
+`createcachetable` is only needed on PostgreSQL, where the login rate limit lives in a table.
+
+`GET /api/cron/cleanup/` deletes expired login tokens and finishes due business deletions. It
+authenticates with `CRON_SECRET` as a Bearer token; call it once a day from whatever scheduler
+your host provides (cron, a systemd timer, an external pinger). Nothing calls it automatically.
 
 ## Layout
 

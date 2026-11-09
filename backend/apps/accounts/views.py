@@ -62,8 +62,9 @@ class LogoutView(APIView):
 
 
 class CronCleanupView(APIView):
-    """Daily job (Vercel Cron, see vercel.json): deletes expired login tokens so the
-    blacklist tables don't grow forever. Vercel sends CRON_SECRET as a Bearer token."""
+    """Daily job: deletes expired login tokens so the blacklist tables don't grow
+    forever, and finishes business deletions whose 30 days are up. Whatever scheduler
+    calls it sends CRON_SECRET as a Bearer token."""
 
     authentication_classes = []
     permission_classes = []
